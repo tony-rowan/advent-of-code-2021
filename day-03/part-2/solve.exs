@@ -6,40 +6,30 @@ defmodule Solve do
       |> List.to_tuple
   end
 
-  def filter_to_oxygen_readings([], _index) do
+  def filter_readings([], _index, _filter) do
     raise "Abort"
   end
 
-  def filter_to_oxygen_readings([reading], _index) do
+  def filter_readings([reading], _index, _filter) do
     reading
   end
 
-  def filter_to_oxygen_readings(readings, index) do
+  def filter_readings(readings, index, filter) do
     bit_counts = readings |> generate_bit_counts()
 
     readings
       |> Enum.map(&List.to_tuple/1)
-      |> Enum.filter(fn reading -> if elem(bit_counts, index) >= 0, do: elem(reading, index) == "1", else: elem(reading, index) == "0" end)
+      |> Enum.filter(&(filter.(&1, index, bit_counts)))
       |> Enum.map(&Tuple.to_list/1)
-      |> filter_to_oxygen_readings(index + 1)
+      |> filter_readings(index + 1, filter)
   end
 
-  def filter_to_carbon_readings([], _index) do
-    raise "Abort"
+  def oxygen_filter(reading, index, bit_counts) do
+    if elem(bit_counts, index) >= 0, do: elem(reading, index) == "1", else: elem(reading, index) == "0"
   end
 
-  def filter_to_carbon_readings([reading], _index) do
-    reading
-  end
-
-  def filter_to_carbon_readings(readings, index) do
-    bit_counts = readings |> generate_bit_counts()
-
-    readings
-      |> Enum.map(&List.to_tuple/1)
-      |> Enum.filter(fn reading -> if elem(bit_counts, index) < 0, do: elem(reading, index) == "1", else: elem(reading, index) == "0" end)
-      |> Enum.map(&Tuple.to_list/1)
-      |> filter_to_carbon_readings(index + 1)
+  def carbon_scrubber_filter(reading, index, bit_counts) do
+    if elem(bit_counts, index) < 0, do: elem(reading, index) == "1", else: elem(reading, index) == "0"
   end
 end
 
@@ -50,12 +40,12 @@ readings = File.stream!(input)
   |> Stream.map(&String.split(&1, "", trim: true))
 
 oxygen_rating = readings
-  |> Solve.filter_to_oxygen_readings(0)
+  |> Solve.filter_readings(0, &Solve.oxygen_filter/3)
   |> Enum.join()
   |> String.to_integer(2)
 
 carbon_scrubber_rating = readings
-  |> Solve.filter_to_carbon_readings(0)
+  |> Solve.filter_readings(0, &Solve.carbon_scrubber_filter/3)
   |> Enum.join()
   |> String.to_integer(2)
 
